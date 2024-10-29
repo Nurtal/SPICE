@@ -12,6 +12,7 @@ import sys
 import getopt
 from termcolor import cprint
 from pyfiglet import figlet_format
+import os
 
 
 def get_cell_to_voisin(p1, points, radius_min, radius_max):
@@ -351,23 +352,87 @@ def run(input, output, radius_min, radius_max):
     """ """
 
 
-    # check nature of input
+    # init output folder
+    if not os.path.isdir(output):
+        os.mkdir(output)
+
+    # compute matrix for one file
+    if os.path.isfile(input):
+
+        # compute matrix
+        matrix = compute_proximity_matrix(radius_min, radius_max, input)
+
+        # save matrix
+        with open(f"{output}/matrix.pickle", 'wb') as handle:
+            pickle.dump(matrix, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+        # save matrix as csv
+        df = pd.DataFrame(matrix)
+        df.to_csv(f"{output}/matrix.csv", index=False)
+        df_percentage = df.div(df.sum(axis=1), axis=0) * 100
+        df_percentage.to_csv(f"{output}/matrix_percentage.csv", index=False)
+
+        # generate figures
+        display_proximity_matrix(matrix)
+
+
+    # compute matrix for one folder
+    if os.path.isdir(input):
+
+        ## collect list of cell pop
+        cell_pop_list = get_cellpop_list_from_folder(input)
+
+        ## loop over roi files
+        for roi_file in glob.glob(f"{input}/*.csv"):
+
+            ## compute matrix
+            matrix = compute_proximity_matrix(radius_min, radius_max, roi_file)
+    
+            ## adjsut matrix for missing pop
+            for c in cell_pop_list:
+                if c not in matrix:
+                    matrix[c] = {}
+                    for c2 in cell_pop_list:
+                        matrix[c][c2] = np.nan
+                else:
+                    for c2 in cell_pop_list:
+                        if c2 not in matrix[c]:
+                            matrix[c][c2] = np.nan
+    
+            # reorder matrix
+            matrix_clean = {}
+            for c1 in cell_pop_list:
+                matrix_clean[c1] = {}
+                for c2 in cell_pop_list:
+                    matrix_clean[c1][c2] = matrix[c1][c2]
+            matrix = matrix_clean
+
+            # save matrix
+            matrix_filename = roi_file.split("/")[-1].replace('.csv', '_matrix.pickle')
+            with open(f"{output}/{matrix_filename}", 'wb') as handle:
+                pickle.dump(matrix, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+            # generate heatmap
+            fig_name = roi_file.split("/")[-1].replace('.csv', '_heatmap.png')
+            generate_proximity_matrix_heatmap(matrix, f"{output}/{fig_name}")
+    
+            # save matrix as csv
+            matrix_file = roi_file.split("/")[-1].replace('.csv', '_matrix.csv')
+            df = pd.DataFrame(matrix)
+            df.to_csv(f"{output}/{matrix_file}")
+            df_percentage = df.div(df.sum(axis=1), axis=0) * 100
+            df_percentage.to_csv(f"{output}/{matrix_file.replace('.csv', '_percentage.csv')}")
+
+
 
 
 if __name__ == "__main__":
-
-    # parameters
-    population = "CD8"
-    cell_id = 3421
-    data_file = "data/Ca15-measurements.csv"
-    folder_file = "data"
 
     # default values
     input = ""
     output = ""
     radius_min = 5
     radius_max = 10
-    
 
     # catch arguments
     argv = sys.argv[1:]
@@ -392,8 +457,8 @@ if __name__ == "__main__":
             radius_max = arg
 
     # display cool banner
-    text = "=====\n> SPICE <\n=====\n"
-    cprint(figlet_format(text, font="standard"), "orange")
+    text = " =====\n> SPICE <\n =====\n"
+    cprint(figlet_format(text, font="standard"), "yellow")
 
     # check that all arguments are present
     if input == "":
