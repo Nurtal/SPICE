@@ -16,10 +16,10 @@ import os
 
 
 def get_cell_to_voisin(p1, points, radius_min, radius_max):
-    """ """
+    """List neigboors of cell p1 """
     neighbors = []
     for p2 in points:
-        if p1 != p2:  # Ne pas comparer un point avec lui-même
+        if p1 != p2:
             x = float(p1.split("_")[0])
             y = float(p1.split("_")[1])
             x_candidate = float(p2.split("_")[0])
@@ -30,8 +30,8 @@ def get_cell_to_voisin(p1, points, radius_min, radius_max):
     return (p1, neighbors)
 
 
-def read_cells_from_file(file_name):
-    """ """
+def read_cells_from_file(file_name:str) -> list:
+    """Get list of cells in file_name """
     points = []
     df = pd.read_csv(file_name)
     for index, row in df.iterrows():
@@ -42,16 +42,14 @@ def read_cells_from_file(file_name):
 
 
 def get_cell_to_voisin_multiproc(points, d_min, d_max):
+    """Multiprocessing neigborhood computation"""
     with multiprocessing.Pool() as pool:
-        # On envoie la recherche des voisins de chaque point en parallèle
         results = pool.starmap(get_cell_to_voisin, [(p1, points, d_min, d_max) for p1 in points])
-    
-    # Résultat sous forme de dictionnaire
     cell_to_voisin = {p1: neighbors for p1, neighbors in results}
     return cell_to_voisin
 
 
-def map_cells_to_pop(data_file):
+def map_cells_to_pop(data_file:str)->dict:
     """ """
     cell_to_pop = {}
     df = pd.read_csv(data_file)
@@ -312,25 +310,19 @@ def display_multiclass_bar(group_to_voisin, pop):
             if pop not in series:
                 series[pop] = 0
 
-    # Récupération des catégories et des valeurs
+    # create figure
     categories = list(data[0].keys())
     n_categories = len(categories)
-    bar_width = 0.2  # Largeur des barres
-    index = np.arange(n_categories)  # Position des barres pour la première série
-
-    # Création du barplot
+    bar_width = 0.2  
+    index = np.arange(n_categories)
     for i, series in enumerate(data):
         values = list(series.values())
         plt.bar(index + i * bar_width, values, bar_width, label=group_list[i])
-
-    # Ajout des étiquettes et du titre
     plt.xlabel('Populations')
     plt.ylabel('Valeurs (%)')
     plt.title(f"Voisins de la population {pop} (valeurs en %)")
     plt.xticks(index + bar_width, categories, rotation=45)
     plt.legend()
-
-    # Affichage du graphique
     plt.show()
 
 
@@ -344,7 +336,24 @@ def display_class_matrix(group_to_voisin, group):
 def display_help():
     """ """
 
-    print("Tardis")
+    help = """
+
+
+    This program computes a matrix of neighbors from one or multiple FCS files.
+
+    Arguments:
+    * input: Path to the FCS file or a directory containing multiple FCS files.
+    * output: Path to the output directory where results will be saved.
+    * radius_min: Minimum radius used to compute the neighborhood.
+    * radius_max: Maximum radius used to compute the neighborhood.
+    
+    Example Usage:
+        
+        spice.py -i 'path/to/my/fcs_file' -o '/path/to/my/output/dir' -r 1 -R 10
+
+    """
+
+    print(help)
 
 
 
@@ -475,52 +484,6 @@ if __name__ == "__main__":
     run(input, output, radius_min, radius_max)
 
 
-
-    # compute matrix for one file
-
-    # compute matrix for multiple file
-
-    # compute matrix for classes
-
-
-    # cell_pop_list = get_cellpop_list_from_folder(folder_file)
-    
-    
-    # Generate & save matrix
-    # matrix = compute_proximity_matrix(radius_min, radius_max, data_file)
-    # with open('matrix.pickle', 'wb') as handle:
-    #     pickle.dump(matrix, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    # # load & display matrix
-    # with open('data/PD25-measurements_matrix.pickle', 'rb') as handle:
-    #     pop_to_voisin = pickle.load(handle)
-
-    # for p in pop_to_voisin:
-    #     print(p)
-    #     print(pop_to_voisin[p])
-    #     print("-"*42)
-    # generate_proximity_matrix_heatmap(pop_to_voisin, "test.png")
-
-    # display_proximity_matrix(pop_to_voisin)
-    # # display_voisin_bar(pop_to_voisin, 'Tconv')
-    # # display_voisin_pie(pop_to_voisin, 'Tconv')
-
-    # result = compute_proximity_matrix_folder("data", "data/Groupe.csv", radius_min, radius_max)
-    # with open('multi_matrix.pickle', 'wb') as handle:
-    #     pickle.dump(result, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-    # with open('matrix.pickle', 'rb') as handle:
-    #     machin = pickle.load(handle)
-
-
-    # display_multiclass_bar(machin, 'Tconv')
-    # display_class_matrix(machin, 'EP')
-
-
-
-
-    # Utilisation du multiprocessing pour trouver les points voisins
 
     
 
